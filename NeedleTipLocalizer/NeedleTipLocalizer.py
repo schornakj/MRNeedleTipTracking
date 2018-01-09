@@ -1,6 +1,7 @@
 import os
 import unittest
 import vtk, qt, ctk, slicer
+import SimpleITK as sitk
 from slicer.ScriptedLoadableModule import *
 import logging
 from vtk.util import numpy_support
@@ -108,25 +109,25 @@ class NeedleTipLocalizerWidget(ScriptedLoadableModuleWidget):
     #
     self.applyButton = qt.QPushButton("Apply")
     self.applyButton.toolTip = "Run the algorithm."
-    self.applyButton.enabled = False
+    self.applyButton.enabled = True
     parametersFormLayout.addRow(self.applyButton)
 
     # connections
     self.applyButton.connect('clicked(bool)', self.onApplyButton)
-    self.inputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
-    self.outputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
+    # self.inputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
+    # self.outputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
 
     # Add vertical spacer
     self.layout.addStretch(1)
 
     # Refresh Apply button state
-    self.onSelect()
+    # self.onSelect()
 
   def cleanup(self):
     pass
 
-  def onSelect(self):
-    self.applyButton.enabled = self.inputSelector.currentNode() and self.outputSelector.currentNode()
+  # def onSelect(self):
+  #   self.applyButton.enabled = self.inputSelector.currentNode() and self.outputSelector.currentNode()
 
   def onApplyButton(self):
     logic = NeedleTipLocalizerLogic()
@@ -153,26 +154,26 @@ class NeedleTipLocalizerLogic(ScriptedLoadableModuleLogic):
     returns true if the passed in volume
     node has valid image data
     """
-    if not volumeNode:
-      logging.debug('hasImageData failed: no volume node')
-      return False
-    if volumeNode.GetImageData() is None:
-      logging.debug('hasImageData failed: no image data in volume node')
-      return False
+    # if not volumeNode:
+    #   logging.debug('hasImageData failed: no volume node')
+    #   return False
+    # if volumeNode.GetImageData() is None:
+    #   logging.debug('hasImageData failed: no image data in volume node')
+    #   return False
     return True
 
   def isValidInputOutputData(self, inputVolumeNode, outputVolumeNode):
     """Validates if the output is not the same as input
     """
-    if not inputVolumeNode:
-      logging.debug('isValidInputOutputData failed: no input volume node defined')
-      return False
-    if not outputVolumeNode:
-      logging.debug('isValidInputOutputData failed: no output volume node defined')
-      return False
-    if inputVolumeNode.GetID()==outputVolumeNode.GetID():
-      logging.debug('isValidInputOutputData failed: input and output volume is the same. Create a new volume for output to avoid this error.')
-      return False
+    # if not inputVolumeNode:
+    #   logging.debug('isValidInputOutputData failed: no input volume node defined')
+    #   return False
+    # if not outputVolumeNode:
+    #   logging.debug('isValidInputOutputData failed: no output volume node defined')
+    #   return False
+    # if inputVolumeNode.GetID()==outputVolumeNode.GetID():
+    #   logging.debug('isValidInputOutputData failed: input and output volume is the same. Create a new volume for output to avoid this error.')
+    #   return False
     return True
 
   def takeScreenshot(self,name,description,type=-1):
@@ -229,8 +230,24 @@ class NeedleTipLocalizerLogic(ScriptedLoadableModuleLogic):
 
     logging.info('Processing started')
 
-    imageNode = slicer.util.getNode('ImagerClient')
-    imageNode.AddObserver(slicer.vtkMRMLScalarVolumeNode.ImageDataModifiedEvent, self.onNodeUpdate)
+    # imageNode = slicer.util.getNode('ImagerClient')
+
+    imageData = slicer.app.layoutManager().sliceWidget("Yellow").sliceLogic().GetBackgroundLayer().GetVolumeNode().GetImageData()
+
+    subset = vtk.vtkExtractVOI()
+
+    # print(subset.GetVOI())
+
+    subset.SetInputData(imageData)
+    subset.SetVOI(0,240, 0, 240, 20, 20)
+    subset.Update()
+    imageDataSubset = subset.GetOutput()
+
+    print(subset.GetSampleRate())
+    print(imageData.GetDimensions())
+    print(imageDataSubset.GetDimensions())
+    # volumeNode.AddObserver(slicer.vtkMRMLScalarVolumeNode.ImageDataModifiedEvent, self.onNodeUpdate)
+
 
     # self.AddObserver()
 
